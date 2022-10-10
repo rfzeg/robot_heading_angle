@@ -65,7 +65,8 @@ private:
 };
 
 // turn to a specified heading angle based on odometry information
-bool ClosedLoopOdom::closedLoopOdomTurn(bool clockwise, double desired_turn_angle) {
+bool ClosedLoopOdom::closedLoopOdomTurn(bool clockwise,
+                                        double desired_turn_angle) {
   // convert angle value to range between -2 * M_PI and 2 * M_PI
   while (desired_turn_angle < 0)
     desired_turn_angle += 2 * M_PI;
@@ -90,7 +91,9 @@ bool ClosedLoopOdom::closedLoopOdomTurn(bool clockwise, double desired_turn_angl
 
   tf2::impl::Converter<true, false>::convert(initial_transform_msg.transform,
                                              initial_transform_tf2);
-
+  // tf2::Transform relative_transform = initial_transform_tf2;
+  double initial_angle = initial_transform_tf2.getRotation().getAngle();
+  RCLCPP_INFO(this->get_logger(), "Initial angle: '%.2f' ", initial_angle);
   // initialize Twist message object
   auto base_cmd = geometry_msgs::msg::Twist();
   // command to turn (rad/sec)
@@ -134,11 +137,17 @@ bool ClosedLoopOdom::closedLoopOdomTurn(bool clockwise, double desired_turn_angl
     if (actual_turn_axis.dot(desired_turn_axis) < 0)
       angle_turned = 2 * M_PI - angle_turned;
 
-    if (angle_turned > desired_turn_angle)
+    if (angle_turned > desired_turn_angle) {
+      RCLCPP_INFO(this->get_logger(),
+                  "Angle turned: '%.2f' > desired turn angle: '%.2f' ?",
+                  angle_turned, desired_turn_angle);
       done = true;
+      break;
+    }
   }
   if (done) {
     // stop the robot
+    RCLCPP_INFO(this->get_logger(), "Stopping turn");
     base_cmd.linear.x = base_cmd.linear.y = 0.0;
     base_cmd.angular.z = 0.0;
     pub_cmd_vel_->publish(base_cmd);
