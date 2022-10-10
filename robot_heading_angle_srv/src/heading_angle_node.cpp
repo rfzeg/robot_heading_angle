@@ -55,7 +55,7 @@ private:
       RCLCPP_DEBUG(this->get_logger(), "No success");
     success_ = this->closedLoopOdomTurn(true, 1.57079633);
   }
-  bool closedLoopOdomTurn(bool clockwise, double radians);
+  bool closedLoopOdomTurn(bool clockwise, double desired_turn_angle);
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr pub_cmd_vel_;
 
@@ -65,12 +65,12 @@ private:
 };
 
 // turn to a specified heading angle based on odometry information
-bool ClosedLoopOdom::closedLoopOdomTurn(bool clockwise, double radians) {
+bool ClosedLoopOdom::closedLoopOdomTurn(bool clockwise, double desired_turn_angle) {
   // convert angle value to range between -2 * M_PI and 2 * M_PI
-  while (radians < 0)
-    radians += 2 * M_PI;
-  while (radians > 2 * M_PI)
-    radians -= 2 * M_PI;
+  while (desired_turn_angle < 0)
+    desired_turn_angle += 2 * M_PI;
+  while (desired_turn_angle > 2 * M_PI)
+    desired_turn_angle -= 2 * M_PI;
 
   // variables to get the initial and latest transform
   geometry_msgs::msg::TransformStamped initial_transform_msg;
@@ -134,7 +134,7 @@ bool ClosedLoopOdom::closedLoopOdomTurn(bool clockwise, double radians) {
     if (actual_turn_axis.dot(desired_turn_axis) < 0)
       angle_turned = 2 * M_PI - angle_turned;
 
-    if (angle_turned > radians)
+    if (angle_turned > desired_turn_angle)
       done = true;
   }
   if (done) {
